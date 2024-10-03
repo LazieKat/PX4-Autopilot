@@ -1,0 +1,12 @@
+menuconfig MODULES_AHMAD_ALLOCATOR
+	bool "ahmad_allocator"
+	default n
+	---help---
+		Enable support for ahmad_allocator
+
+menuconfig USER_ahmad_ALLOCATOR
+	bool "ahmad_allocator running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_AHMAD_ALLOCATOR
+	---help---
+		Put ahmad_allocator in userspace memory

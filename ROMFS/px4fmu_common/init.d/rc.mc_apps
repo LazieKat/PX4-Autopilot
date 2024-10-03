@@ -8,7 +8,13 @@
 #
 # Start Control Allocator
 #
-control_allocator start
+
+if param greater -s AHMAD_ALLOCATOR 0
+then
+	ahmad_allocator start
+else
+	control_allocator start
+fi
 
 #
 # Start Multicopter Rate Controller.
