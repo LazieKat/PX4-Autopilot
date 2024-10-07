@@ -1,0 +1,96 @@
+ControlAllocator:
+
+    :: INHERITANCE ::
+
+    ModuleBase:
+        static int task_spawn()
+        static int custom_command()
+        static int print_usage()
+
+        int print_status()
+
+        void Run() override
+
+    ModuleParams:
+        ~
+
+    ScheduledWorkItem:
+        void Run() override
+
+
+    :: Types ::
+
+    struct  ParamHandles {param_t, param_t}
+    struct  Params {float, float}
+
+    enum class  EffectivenessSource
+    enum class  FailureMode
+
+
+    :: Variables ::
+
+~~  static  int NUM_ACTUATORS
+~~  static  int NUM_AXES
+~~  static  int MAX_NUM_MOTORS
+~~  static  int MAX_NUM_SERVOS
+
+    struct  ParamHandles _param_handles
+    struct  Params       _params
+
+    enum    AllocationMethod _allocation_method_id
+    enum    EffectivenessSource _effectiveness_source_id
+
+    class   ControlAllocation *_control_allocation
+    class   ActuatorEffectiveness *_actuator_effectiveness
+
+
+~~  uORB    SubscriptionCallbackWorkItem <- ORB_ID(vehicle_torque_setpoint)
+~~  uORB    SubscriptionCallbackWorkItem <- ORB_ID(vehicle_thrust_setpoint)
+
+~~  uORB    Subscription <- ORB_ID(vehicle_torque_setpoint)
+~~  uORB    Subscription <- ORB_ID(vehicle_thrust_setpoint)
+~~  uORB    Subscription <- ORB_ID(vehicle_status)
+~~  uORB    Subscription <- ORB_ID(vehicle_control_mode)
+~~  uORB    Subscription <- ORB_ID(failure_detector_status)
+
+~~  uORB    PublicationMulti<control_allocator_status_s> -> ORB_ID(control_allocator_status)
+
+~~  uORB    Publication<actuator_motors_s>      -> ORB_ID(actuator_motors)
+~~  uORB    Publication<actuator_servos_s>      -> ORB_ID(actuator_servos)
+~~  uORB    Publication<actuator_servos_trim_s> -> ORB_ID(actuator_servos_trim)
+
+~~  uORB    SubscriptionInterval ORB_ID(parameter_update) = 1_s
+
+
+~~  matrix  Vector3f _torque_sp
+~~  matrix  Vector3f _thrust_sp
+
+
+~~  bool _publish_controls
+~~  bool _armed
+    bool _has_slew_rate
+
+    int _num_control_allocation
+    int _num_actuators
+
+    uint8_t _control_allocation_selection_indexes
+
+    hrt_abstime _last_effectiveness_update
+    hrt_abstime _last_run
+    hrt_abstime _timestamp_sample
+    hrt_abstime _last_status_pub
+
+    perf_counter_t _loop_perf
+
+
+    :: Methods ::
+
+~~  bool init()
+    bool update_effectiveness_source()
+
+    void parameters_update()
+    void update_allocation_method()
+    void update_effectiveness_matrix_if_needed()
+~~  void check_for_motor_failures()
+~~  void publish_control_allocator_status()
+~~  void publish_actuator_controls()
