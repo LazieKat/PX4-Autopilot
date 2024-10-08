@@ -1,23 +1,4 @@
 ControlAllocator:
-
-    :: INHERITANCE ::
-
-    ModuleBase:
-        static int task_spawn()
-        static int custom_command()
-        static int print_usage()
-
-        int print_status()
-
-        void Run() override
-
-    ModuleParams:
-        ~
-
-    ScheduledWorkItem:
-        void Run() override
-
-
     :: Types ::
 
     struct  ParamHandles {param_t, param_t}
@@ -82,15 +63,64 @@ ControlAllocator:
 
     perf_counter_t _loop_perf
 
+    DEFINE_PARAMETERS::
+        CA_AIRFRAME
+        CA_METHOD
+        CA_FAILURE_MODE
+        CA_R_REV
+
 
     :: Methods ::
+~~  ControlAllocator()
+~~      inititlize parent objects
+~~      inititlize publishers to advertise
+        inititlize slew rates
+        call parameters_updated() to get changes
+
+~~  ~ControlAllocator()
+~~      delete all pointers
+~~      free performace counters
 
 ~~  bool init()
-    bool update_effectiveness_source()
+~~      register setpoint uORB subscriptions callbacks
+~~      return true if all are successful
+
+~~  bool update_effectiveness_source()
+~~      check what is the airframe set as
+~~      if effectiveness source id is not the same, update it
 
     void parameters_update()
-    void update_allocation_method()
-    void update_effectiveness_matrix_if_needed()
-~~  void check_for_motor_failures()
-~~  void publish_control_allocator_status()
+        called when parameters are expected to be updated
+        will call update_allocation_method() and update_effectiveness_matrix_if_needed()
+        will set _has_slew_rate
+
+~~  void update_allocation_method()
+~~      set _control_allocation array to the correct method
+
 ~~  void publish_actuator_controls()
+~~      prepare pub messages
+~~      get timestamp and timestamp_sample
+~~      check reversible flags
+~~      collect control from every actuator
+~~      publish for motors and servos
+
+    void check_for_motor_failures()
+    void publish_control_allocator_status()
+    void update_effectiveness_matrix_if_needed()
+
+    :: INHERITANCE ::
+
+~~  ModuleBase:
+~~      static int task_spawn()
+~~          create instnace pointer to object
+~~          store instance
+~~          initialize and return OK or ERROR
+
+~~      static int custom_command()
+~~      static int print_usage()
+~~      int print_status()
+
+    ScheduledWorkItem:
+        void Run() override
+
+    ModuleParams:

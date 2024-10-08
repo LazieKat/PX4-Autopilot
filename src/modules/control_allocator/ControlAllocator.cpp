@@ -219,7 +219,7 @@ ControlAllocator::update_effectiveness_source()
 		switch (source) {
 		case EffectivenessSource::NONE:
 		case EffectivenessSource::MULTIROTOR:
-			tmp = new ActuatorEffectivenessMultirotor(this);
+			tmp = new ActuatorEffectivenessTiltMultirotor(this);
 			break;
 
 		case EffectivenessSource::STANDARD_VTOL:

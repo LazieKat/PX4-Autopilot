@@ -36,11 +36,11 @@
 #include "ActuatorEffectiveness.hpp"
 #include "ActuatorEffectivenessRotors.hpp"
 
-class ActuatorEffectivenessMultirotor : public ModuleParams, public ActuatorEffectiveness
+class ActuatorEffectivenessTiltMultirotor : public ModuleParams, public ActuatorEffectiveness
 {
 public:
-	ActuatorEffectivenessMultirotor(ModuleParams *parent);
-	virtual ~ActuatorEffectivenessMultirotor() = default;
+	ActuatorEffectivenessTiltMultirotor(ModuleParams *parent);
+	virtual ~ActuatorEffectivenessTiltMultirotor() = default;
 
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
