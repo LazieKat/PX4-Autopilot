@@ -48,6 +48,7 @@
 #include <ControlAllocation.hpp>
 #include <ControlAllocationPseudoInverse.hpp>
 #include <ControlAllocationSequentialDesaturation.hpp>
+#include <ControlAllocationPseudoInverseTilt.hpp>
 
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
@@ -198,5 +199,10 @@ private:
 		(ParamInt<px4::params::CA_FAILURE_MODE>) _param_ca_failure_mode,
 		(ParamInt<px4::params::CA_R_REV>) _param_r_rev
 	)
+
+
+	matrix::Matrix<float, 12UL, 6UL> _mix_mine;
+	matrix::Vector<float, 4UL> _mot_cont;
+	matrix::Vector<float, 4UL> _servo_cont;
 
 };

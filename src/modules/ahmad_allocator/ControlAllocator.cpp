@@ -47,6 +47,7 @@
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
 
+#include <cmath>
 
 using namespace matrix;
 using namespace time_literals;
@@ -76,6 +77,31 @@ ControlAllocator::ControlAllocator() :
 	}
 
 	parameters_updated();
+
+
+	float _mix_mine_matrix[12][6] = {
+		{  0.1768 ,  0.1768 ,  0.0000 ,  0.0000 ,  0.0000 , -0.0000 } ,
+		{  0.1768 , -0.1768 ,  0.0000 ,  0.0000 ,  0.0000 , -0.9441 } ,
+		{  0.0000 ,  0.0000 , -0.2500 , -1.3865 ,  1.3865 ,  0.1851 } ,
+		{ -0.1768 , -0.1768 ,  0.0000 ,  0.0000 ,  0.0000 , -0.0000 } ,
+		{ -0.1768 ,  0.1768 ,  0.0000 ,  0.0000 ,  0.0000 , -0.9441 } ,
+		{  0.0000 ,  0.0000 , -0.2500 ,  1.3865 , -1.3865 ,  0.1851 } ,
+		{  0.1768 , -0.1768 ,  0.0000 ,  0.0000 ,  0.0000 ,  0.0000 } ,
+		{ -0.1768 , -0.1768 ,  0.0000 ,  0.0000 ,  0.0000 , -0.9441 } ,
+		{  0.0000 ,  0.0000 , -0.2500 ,  1.3865 ,  1.3865 , -0.1851 } ,
+		{ -0.1768 ,  0.1768 ,  0.0000 ,  0.0000 ,  0.0000 , -0.0000 } ,
+		{  0.1768 ,  0.1768 ,  0.0000 ,  0.0000 ,  0.0000 , -0.9441 } ,
+		{  0.0000 ,  0.0000 , -0.2500 , -1.3865 , -1.3865 , -0.1851 } ,
+	};
+
+
+	for(int i = 0; i < 12; i++)
+	{
+		for(int j = 0; j < 6; j++)
+		{
+			_mix_mine(i, j) = _mix_mine_matrix[i][j];
+		}
+	}
 }
 
 ControlAllocator::~ControlAllocator()
@@ -187,6 +213,10 @@ ControlAllocator::update_allocation_method(bool force)
 
 			case AllocationMethod::SEQUENTIAL_DESATURATION:
 				_control_allocation[i] = new ControlAllocationSequentialDesaturation();
+				break;
+
+			case AllocationMethod::PSEUDO_INVERSE_TILT:
+				_control_allocation[i] = new ControlAllocationPseudoInverseTilt();
 				break;
 
 			default:
@@ -365,44 +395,69 @@ ControlAllocator::Run()
 		update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::NO_EXTERNAL_UPDATE);
 
 		// Set control setpoint vector(s)
-		matrix::Vector<float, NUM_AXES> c[ActuatorEffectiveness::MAX_NUM_MATRICES];
-		c[0](0) = _torque_sp(0);
-		c[0](1) = _torque_sp(1);
-		c[0](2) = _torque_sp(2);
-		c[0](3) = _thrust_sp(0);
-		c[0](4) = _thrust_sp(1);
-		c[0](5) = _thrust_sp(2);
+		matrix::Vector<float, NUM_AXES> c;
 
-		if (_num_control_allocation > 1) {
-			if (_vehicle_torque_setpoint1_sub.copy(&vehicle_torque_setpoint)) {
-				c[1](0) = vehicle_torque_setpoint.xyz[0];
-				c[1](1) = vehicle_torque_setpoint.xyz[1];
-				c[1](2) = vehicle_torque_setpoint.xyz[2];
-			}
+		c(0) = _thrust_sp(0);
+		c(1) = _thrust_sp(1);
+		c(2) = _thrust_sp(2);
+		c(3) = _torque_sp(0);
+		c(4) = _torque_sp(1);
+		c(5) = _torque_sp(2);
 
-			if (_vehicle_thrust_setpoint1_sub.copy(&vehicle_thrust_setpoint)) {
-				c[1](3) = vehicle_thrust_setpoint.xyz[0];
-				c[1](4) = vehicle_thrust_setpoint.xyz[1];
-				c[1](5) = vehicle_thrust_setpoint.xyz[2];
-			}
-		}
 
-		for (int i = 0; i < _num_control_allocation; ++i) {
+		// allocation
+		matrix::Vector<float, 12> _result = _mix_mine * c;
 
-			_control_allocation[i]->setControlSetpoint(c[i]);
+		float t1 = -atan2(_result(1) , _result(2 ));
+		float t2 = -atan2(_result(4) , _result(5 ));
+		float t3 = -atan2(_result(7) , _result(8 ));
+		float t4 = -atan2(_result(10), _result(11));
 
-			// Do allocation
-			_control_allocation[i]->allocate();
-			_actuator_effectiveness->allocateAuxilaryControls(dt, i, _control_allocation[i]->_actuator_sp); //flaps and spoilers
-			_actuator_effectiveness->updateSetpoint(c[i], i, _control_allocation[i]->_actuator_sp,
-								_control_allocation[i]->getActuatorMin(), _control_allocation[i]->getActuatorMax());
+		// print control as Fx Fy Fz Mx My Mz
+		// printf("Fx: %f , Fy: %f , Fz: %f , Mx: %f , My: %f , Mz: %f\n", (double)c(0), (double)c(1), (double)c(2), (double)c(3), (double)c(4), (double)c(5));
 
-			if (_has_slew_rate) {
-				_control_allocation[i]->applySlewRateLimit(dt);
-			}
+		// print servo angles t1 t2 t3 t4 after converting from radians to degrees
+		// PX4_INFO("t1: %f , t2: %f , t3: %f , t4: %f\n", (double)t1 * 180 / M_PI, (double)t2 * 180 / M_PI, (double)t3 * 180 / M_PI, (double)t4 * 180 / M_PI);
 
-			_control_allocation[i]->clipActuatorSetpoint();
-		}
+		// limit angles to 0.34907 rad (20 degrees) and assign this range to -1 to 1
+
+		t1 = math::constrain(t1, -0.34907f, 0.34907f);
+		t2 = math::constrain(t2, -0.34907f, 0.34907f);
+		t3 = math::constrain(t3, -0.34907f, 0.34907f);
+		t4 = math::constrain(t4, -0.34907f, 0.34907f);
+
+
+		_servo_cont(0) = t1/0.34907f;
+		_servo_cont(1) = t2/0.34907f;
+		_servo_cont(2) = t3/0.34907f;
+		_servo_cont(3) = t4/0.34907f;
+
+
+		// _servo_cont(0) = c(2);
+		// _servo_cont(1) = c(3);
+		// _servo_cont(2) = c(4);
+		// _servo_cont(3) = c(5);
+		// _mot_cont(0) = sqrtf(_result(1) * _result(1) + _result(2) * _result(2));
+		// _mot_cont(1) = sqrtf(_result(4) * _result(4) + _result(5) * _result(5));
+		// _mot_cont(2) = sqrtf(_result(7) * _result(7) + _result(8) * _result(8));
+		// _mot_cont(3) = sqrtf(_result(10) * _result(10) + _result(11) * _result(11));
+
+		// _servo_cont(0) = 0;
+		// _servo_cont(1) = 0;
+		// _servo_cont(2) = 0;
+		// _servo_cont(3) = 0;
+
+		_mot_cont(0) = 0;
+		_mot_cont(1) = 0;
+		_mot_cont(2) = 0;
+		_mot_cont(3) = 0;
+
+		// printf("control: %f , %f , %f , %f , %f , %f\n", (double)c(0), (double)c(1), (double)c(2), (double)c(3), (double)c(4), (double)c(5));
+		// // print servo and motor control
+		// printf("servo control: %f , %f , %f , %f\n", (double)_servo_cont(0), (double)_servo_cont(1), (double)_servo_cont(2), (double)_servo_cont(3));
+		// printf("motor control: %f , %f , %f , %f\n", (double)_mot_cont(0), (double)_mot_cont(1), (double)_mot_cont(2), (double)_mot_cont(3));
+
+		// printf("\n-------------\n");
 	}
 
 	// Publish actuator setpoint and allocator status
@@ -625,25 +680,18 @@ ControlAllocator::publish_actuator_controls()
 
 	actuator_motors.reversible_flags = _param_r_rev.get();
 
-	int actuator_idx = 0;
-	int actuator_idx_matrix[ActuatorEffectiveness::MAX_NUM_MATRICES] {};
 
 	uint32_t stopped_motors = _actuator_effectiveness->getStoppedMotors() | _handled_motor_failure_bitmask;
 
 	// motors
 	int motors_idx;
 
-	for (motors_idx = 0; motors_idx < _num_actuators[0] && motors_idx < actuator_motors_s::NUM_CONTROLS; motors_idx++) {
-		int selected_matrix = _control_allocation_selection_indexes[actuator_idx];
-		float actuator_sp = _control_allocation[selected_matrix]->getActuatorSetpoint()(actuator_idx_matrix[selected_matrix]);
-		actuator_motors.control[motors_idx] = PX4_ISFINITE(actuator_sp) ? actuator_sp : NAN;
+	for (motors_idx = 0; motors_idx < 4; motors_idx++) {
+		actuator_motors.control[motors_idx] = PX4_ISFINITE(_mot_cont(motors_idx)) ? _mot_cont(motors_idx) : NAN;
 
 		if (stopped_motors & (1u << motors_idx)) {
 			actuator_motors.control[motors_idx] = NAN;
 		}
-
-		++actuator_idx_matrix[selected_matrix];
-		++actuator_idx;
 	}
 
 	for (int i = motors_idx; i < actuator_motors_s::NUM_CONTROLS; i++) {
@@ -653,23 +701,17 @@ ControlAllocator::publish_actuator_controls()
 	_actuator_motors_pub.publish(actuator_motors);
 
 	// servos
-	if (_num_actuators[1] > 0) {
-		int servos_idx;
+	int servos_idx;
 
-		for (servos_idx = 0; servos_idx < _num_actuators[1] && servos_idx < actuator_servos_s::NUM_CONTROLS; servos_idx++) {
-			int selected_matrix = _control_allocation_selection_indexes[actuator_idx];
-			float actuator_sp = _control_allocation[selected_matrix]->getActuatorSetpoint()(actuator_idx_matrix[selected_matrix]);
-			actuator_servos.control[servos_idx] = PX4_ISFINITE(actuator_sp) ? actuator_sp : NAN;
-			++actuator_idx_matrix[selected_matrix];
-			++actuator_idx;
-		}
-
-		for (int i = servos_idx; i < actuator_servos_s::NUM_CONTROLS; i++) {
-			actuator_servos.control[i] = NAN;
-		}
-
-		_actuator_servos_pub.publish(actuator_servos);
+	for (servos_idx = 0; servos_idx < 4; servos_idx++) {
+		actuator_servos.control[servos_idx] = PX4_ISFINITE(_servo_cont(servos_idx)) ? _servo_cont(servos_idx) : NAN;
 	}
+
+	for (int i = servos_idx; i < actuator_servos_s::NUM_CONTROLS; i++) {
+		actuator_servos.control[i] = NAN;
+	}
+
+	_actuator_servos_pub.publish(actuator_servos);
 }
 
 void
@@ -761,6 +803,10 @@ int ControlAllocator::print_status()
 
 	case AllocationMethod::SEQUENTIAL_DESATURATION:
 		PX4_INFO("Method: Sequential desaturation");
+		break;
+
+	case AllocationMethod::PSEUDO_INVERSE_TILT:
+		PX4_INFO("Method: Pseudo-inverse tilt");
 		break;
 
 	case AllocationMethod::AUTO:

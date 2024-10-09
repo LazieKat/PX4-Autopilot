@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,33 +31,48 @@
  *
  ****************************************************************************/
 
+/**
+ * @file ControlAllocationPseudoInverse.hpp
+ *
+ * Simple Control Allocation Algorithm
+ *
+ * It computes the pseudo-inverse of the effectiveness matrix
+ * Actuator saturation is handled by simple clipping, do not
+ * expect good performance in case of actuator saturation.
+ *
+ * @author Julien Lecoeur <julien.lecoeur@gmail.com>
+ */
+
 #pragma once
 
-#include "ActuatorEffectiveness.hpp"
-#include "ActuatorEffectivenessRotors.hpp"
+#include "ControlAllocation.hpp"
 
-class ActuatorEffectivenessTiltMultirotor : public ModuleParams, public ActuatorEffectiveness
+class ControlAllocationPseudoInverseTilt: public ControlAllocation
 {
 public:
-	ActuatorEffectivenessTiltMultirotor(ModuleParams *parent);
-	virtual ~ActuatorEffectivenessTiltMultirotor() = default;
+	ControlAllocationPseudoInverseTilt();
+	virtual ~ControlAllocationPseudoInverseTilt() = default;
 
-	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
-
-	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
-	{
-		allocation_method_out[0] = AllocationMethod::PSEUDO_INVERSE_TILT;
-
-		printf("THIS IS CALLED - File: ActuatorEffectivenessTiltMultirotor.hpp\n");
-	}
-
-	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
-	{
-		normalize[0] = true;
-	}
-
-	const char *name() const override { return "Tilt Multirotor"; }
+	void allocate() override;
+	void setEffectivenessMatrix(const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness,
+				    const ActuatorVector &actuator_trim, const ActuatorVector &linearization_point, int num_actuators,
+				    bool update_normalization_scale) override;
 
 protected:
-	ActuatorEffectivenessRotors _mc_rotors;
+	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> _mix;
+
+	bool _mix_update_needed{false};
+
+	/**
+	 * Recalculate pseudo inverse if required.
+	 *
+	 */
+	void updatePseudoInverse();
+
+private:
+	void normalizeControlAllocationMatrix();
+	void updateControlAllocationMatrixScale();
+	bool _normalization_needs_update{false};
+
+	matrix::Matrix<float, 16UL, 6UL> _mix_mine;
 };
