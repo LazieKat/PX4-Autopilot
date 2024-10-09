@@ -96,7 +96,7 @@ protected:
 	int _first_tilt_idx{0};
 	float _last_tilt_control{NAN};
 	bool _tilt_updated{true};
-	int32_t _tilting_type{0};
+	int32_t _tilting_type{1};
 
 	static constexpr int NUM_SERVOS_MAX = 5;
 	struct ServoParamHandles{

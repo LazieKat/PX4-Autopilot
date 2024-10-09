@@ -199,10 +199,6 @@ ActuatorEffectivenessTiltingMultirotor::_updateSetpoint(const matrix::Vector<flo
 			// PX4_INFO("%d) tilt_sp: %f", i, (double)tilt_sp[i]);
 		}
 	}
-	else
-	{
-		PX4_ERR("ERROR: Tilting Type %d unsupported.", _tilting_type);
-	}
 
 }
 

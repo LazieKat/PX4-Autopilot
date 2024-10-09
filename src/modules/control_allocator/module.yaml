@@ -46,7 +46,7 @@ parameters:
             values:
                 0: One tilt
                 1: Omnidirectional
-            default: 0
+            default: 1
         #*** END-CUSTOM ***
 
         CA_METHOD:

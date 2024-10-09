@@ -12,6 +12,7 @@ param set-default -s IMU_GYRO_FFT_EN 1
 param set-default -s MC_AT_EN 1
 
 param set-default -s AHMAD_ALLOCATOR 1
+param set-default -s CA_TILTING_TYPE 1
 
 param set-default -s UAVCAN_ENABLE 2
 
