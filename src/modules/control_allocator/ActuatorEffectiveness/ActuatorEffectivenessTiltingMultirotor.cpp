@@ -159,37 +159,37 @@ ActuatorEffectivenessTiltingMultirotor::getEffectivenessMatrix(Configuration &co
 }
 
 void
-ActuatorEffectivenessTiltingMultirotor::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
+ActuatorEffectivenessTiltingMultirotor::_updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 			    ActuatorVector &actuator_sp){
 
-	actuator_controls_s actuator_controls_0;
-	if(_tilting_type == 0){
-		if (_actuator_controls_0_sub.copy(&actuator_controls_0)){
+	// actuator_controls_s actuator_controls_0;
+	// if(_tilting_type == 0){
+	// 	if (_actuator_controls_0_sub.copy(&actuator_controls_0)){
 
-			float tilt_sp = actuator_controls_0.control[actuator_controls_s::INDEX_FLAPS];
+	// 		float tilt_sp = actuator_controls_0.control[actuator_controls_s::INDEX_FLAPS];
 
-			//TO DO: change min e max with the servo limits
-			tilt_sp = tilt_sp < -0.99f ? -1.f : tilt_sp;
-			tilt_sp = tilt_sp > 0.99f ? 1.f : tilt_sp;
+	// 		//TO DO: change min e max with the servo limits
+	// 		tilt_sp = tilt_sp < -0.99f ? -1.f : tilt_sp;
+	// 		tilt_sp = tilt_sp > 0.99f ? 1.f : tilt_sp;
 
-			// initialize _last_tilt_control
-			if (!PX4_ISFINITE(_last_tilt_control)) {
-				_last_tilt_control = tilt_sp;
+	// 		// initialize _last_tilt_control
+	// 		if (!PX4_ISFINITE(_last_tilt_control)) {
+	// 			_last_tilt_control = tilt_sp;
 
-			// To DO: check if 0.02f is a good threshold
-			} else if (fabsf(tilt_sp - _last_tilt_control) > 0.02f) {
-				_tilt_updated = true;
-				_last_tilt_control = tilt_sp;
-			}
+	// 		// To DO: check if 0.02f is a good threshold
+	// 		} else if (fabsf(tilt_sp - _last_tilt_control) > 0.02f) {
+	// 			_tilt_updated = true;
+	// 			_last_tilt_control = tilt_sp;
+	// 		}
 
-			for (int i = 0; i < _tilts->count(); ++i) {
-				if (_tilts->config(i).tilt_direction == ActuatorEffectivenessTilts::TiltDirection::TowardsFront) {
-					actuator_sp(i + _first_tilt_idx) += tilt_sp;
-				}
-			}
-		}
-	}
-	else if(_tilting_type!=0 && matrix_index == 1){
+	// 		for (int i = 0; i < _tilts->count(); ++i) {
+	// 			if (_tilts->config(i).tilt_direction == ActuatorEffectivenessTilts::TiltDirection::TowardsFront) {
+	// 				actuator_sp(i + _first_tilt_idx) += tilt_sp;
+	// 			}
+	// 		}
+	// 	}
+	// }
+	if(_tilting_type!=0 && matrix_index == 1){
 
 		for(int i=0; i<_servo_count; i++){
 
@@ -199,4 +199,17 @@ ActuatorEffectivenessTiltingMultirotor::updateSetpoint(const matrix::Vector<floa
 			// PX4_INFO("%d) tilt_sp: %f", i, (double)tilt_sp[i]);
 		}
 	}
+	else
+	{
+		PX4_ERR("ERROR: Tilting Type %d unsupported.", _tilting_type);
+	}
+
+}
+
+
+void ActuatorEffectivenessTiltingMultirotor::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
+				ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
+				const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
+{
+	this->_updateSetpoint(control_sp, matrix_index, actuator_sp);
 }

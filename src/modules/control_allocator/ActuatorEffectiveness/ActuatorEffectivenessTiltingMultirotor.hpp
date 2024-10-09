@@ -38,7 +38,6 @@
 #include "ActuatorEffectivenessTilts.hpp"
 #include <px4_platform_common/module_params.h>
 
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/Subscription.hpp>
 
 class ActuatorEffectivenessTiltingMultirotor : public ModuleParams, public ActuatorEffectiveness
@@ -74,7 +73,11 @@ public:
 	}
 
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
-			    ActuatorVector &actuator_sp) override;
+				ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
+				const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
+
+	void _updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
+			    ActuatorVector &actuator_sp);
 
 	const char *name() const override { return "Tilting Multirotor"; }
 
@@ -111,5 +114,5 @@ protected:
 	ServoParamHandles _servo_param_handles[NUM_SERVOS_MAX];
 	ServoParam _servo_param[NUM_SERVOS_MAX];
 
-	uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
+	// uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
 };

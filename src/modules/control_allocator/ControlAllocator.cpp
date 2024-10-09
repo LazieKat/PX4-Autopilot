@@ -458,7 +458,7 @@ ControlAllocator::Run()
 
 				// Do allocation
 				_control_allocation[i]->allocate();
-				_actuator_effectiveness->updateSetpoint(c[i], i, _control_allocation[i]->_actuator_sp);
+				_actuator_effectiveness->updateSetpoint(c[i], i, _control_allocation[i]->_actuator_sp, _control_allocation[i]->getActuatorMin(), _control_allocation[i]->getActuatorMax());
 
 				if (_has_slew_rate) {
 					_control_allocation[i]->applySlewRateLimit(dt);
@@ -528,7 +528,7 @@ ControlAllocator::Run()
 
 			//To do: check servo sp e actuator sp, uno è angolo e l'altro è pwm
 
-			_actuator_effectiveness->updateSetpoint(c[0], 0, _control_allocation[0]->_actuator_sp);
+			_actuator_effectiveness->updateSetpoint(c[0], 0, _control_allocation[0]->_actuator_sp, _control_allocation[0]->getActuatorMin(), _control_allocation[0]->getActuatorMax());
 			// _actuator_effectiveness->updateSetpoint(c[1], 1, _control_allocation[1]->_actuator_sp);
 
 			if (_has_slew_rate) {
